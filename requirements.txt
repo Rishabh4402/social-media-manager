@@ -1,0 +1,5 @@
+instagrapi
+google-genai
+requests
+pillow
+python-dotenv

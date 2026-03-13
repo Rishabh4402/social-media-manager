@@ -1,0 +1,32 @@
+name: Daily Instagram Post
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Runs daily at 09:00 UTC
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Create .env
+        run: |
+          echo "IG_USERNAME=${{ secrets.IG_USERNAME }}" >> .env
+          echo "IG_PASSWORD=${{ secrets.IG_PASSWORD }}" >> .env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
+          echo "CONTENT_NICHE=${{ secrets.CONTENT_NICHE }}" >> .env
+
+      - name: Run Agent
+        run: python main.py
