@@ -135,7 +135,7 @@ class InstaManager:
                 "audio_muted": False,
             }
             
-            self.cl.request_timeout = 90 # Increased timeout
+            self.cl.request_timeout = 300 # Increased to 5 minutes for large high-quality reels
             
             try:
                 media = self.cl.clip_upload(video_path, caption, extra_data=extra)
