@@ -252,7 +252,9 @@ class TrendingReelDownloader:
                 music_clip.close()
                 return video_path
             
-            music_audio = music_clip.audio.subclip(0, min(video.duration, music_clip.audio.duration))
+            # Extract audio with a tiny buffer to avoid precision errors
+            music_duration = min(video.duration, music_clip.audio.duration - 0.1)
+            music_audio = music_clip.audio.subclip(0, music_duration)
             
             # Mix: if original video has audio, blend them; otherwise just use music
             if video.audio:
