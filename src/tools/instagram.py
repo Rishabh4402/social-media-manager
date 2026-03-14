@@ -15,6 +15,7 @@ class InstaManager:
         self.password = os.getenv("IG_PASSWORD")
         self.two_factor_seed = os.getenv("IG_2FA_SEED")
         self.proxy = os.getenv("IG_PROXY")
+        self.session_id = os.getenv("IG_SESSIONID")
         
         base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.session_file = os.path.join(base_path, "ig_session.json")
@@ -52,7 +53,21 @@ class InstaManager:
             if os.path.exists(self.session_file):
                 self.cl.load_settings(self.session_file)
                 print("Loaded existing session.")
-                # If no session, randomize device to avoid fingerprint bans
+            
+            # If a session ID is provided, try that first (Bypasses Blacklists!)
+            if self.session_id:
+                print("Attempting login via Session ID...")
+                try:
+                    self.cl.login_by_sessionid(self.session_id)
+                    self.cl.dump_settings(self.session_file)
+                    print("Login via Session ID successful!")
+                    return True
+                except Exception as ses_e:
+                    print(f"Session ID login failed: {ses_e}")
+                    # Fall back to standard login
+            
+            # If no session, randomize device to avoid fingerprint bans
+            if not os.path.exists(self.session_file):
                 print("Setting fresh device fingerprint (Samsung Galaxy S21)...")
                 
                 # Detailed device parameters

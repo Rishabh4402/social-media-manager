@@ -55,6 +55,7 @@ Add these in **Settings > Secrets and variables > Actions**:
 | `IG_USERNAME` | Instagram email/username |
 | `IG_PASSWORD` | Instagram password |
 | `IG_2FA_SEED` | (Optional) 2FA Secret Key for automated login |
+| `IG_SESSIONID` | (Optional) Browser Session ID to bypass IP blacklists |
 | `IG_PROXY` | (Optional) Proxy URL (e.g., `http://user:pass@host:port`) |
 | `GEMINI_API_KEY` | Google AI Studio API key |
 | `PIXABAY_API_KEY` | Pixabay API key for trending videos |
