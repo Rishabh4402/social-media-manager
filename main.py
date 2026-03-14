@@ -6,8 +6,8 @@ import sys
 import datetime
 
 def get_next_post_type():
-    day_of_year = datetime.datetime.now().timetuple().tm_yday
-    return "reel" if day_of_year % 2 == 0 else "photo"
+    # Always post reels as requested
+    return "reel"
 
 def main():
     print("--- Social Media Manager Agent Start ---")
