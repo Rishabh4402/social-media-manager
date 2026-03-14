@@ -126,19 +126,33 @@ class InstaManager:
             # Add a delay to look more human
             time.sleep(random.randint(3, 8))
             
-            # Using robust flags to ensure audio persistence
+            # Using only essential flags to avoid parsing errors in instagrapi
             extra = {
                 "audio_muted": False,
-                "disable_pull_to_refresh_audio": False,
-                "is_audio_stream_static": True
             }
-            # Set a longer timeout for video configuration to ensure audio tracks process
-            self.cl.request_timeout = 60
-            media = self.cl.clip_upload(video_path, caption, extra_data=extra)
-            print("Reel upload successful!")
-            return media
+            
+            self.cl.request_timeout = 90 # Increased timeout
+            
+            try:
+                media = self.cl.clip_upload(video_path, caption, extra_data=extra)
+                print("Reel upload successful!")
+                return media
+            except Exception as e:
+                msg = str(e)
+                # If we get "Unknown" but status is "ok", it likely uploaded successfully
+                if "Unknown" in msg and "'status': 'ok'" in msg:
+                    print("Detected 'Unknown' but successful response. Fetching latest post to verify...")
+                    time.sleep(5)
+                    user_id = self.cl.user_id_from_username(self.username)
+                    medias = self.cl.user_medias(user_id, amount=1)
+                    if medias:
+                        print(f"Latest post recovered: {medias[0].id}")
+                        return medias[0]
+                
+                print(f"Reel upload failed: {e}")
+                return None
         except Exception as e:
-            print(f"Reel upload failed: {e}")
+            print(f"Reel upload outer error: {e}")
             return None
 
     def delete_media(self, media_id):
