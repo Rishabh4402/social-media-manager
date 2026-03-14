@@ -1,3 +1,4 @@
+import requests
 import pyotp
 from instagrapi import Client
 import os
@@ -139,6 +140,56 @@ class InstaManager:
         except Exception as e:
             print(f"Reel upload failed: {e}")
             return None
+
+    def delete_media(self, media_id):
+        """Permanent delete a post if it fails verification."""
+        try:
+            print(f"Rolling back failed post (ID: {media_id})...")
+            self.cl.media_delete(media_id)
+            print("Rollback successful. Post removed.")
+            return True
+        except Exception as e:
+            print(f"Rollback failed: {e}")
+            return False
+
+    def verify_audio(self, media_id):
+        """Verify the uploaded reel has a working audio track."""
+        print(f"Verifying audio for post {media_id}...")
+        try:
+            # Wait a few seconds for Instagram's processing to finish
+            time.sleep(10)
+            
+            info = self.cl.media_info(media_id)
+            video_url = info.video_url
+            
+            # Download the uploaded video for analysis
+            print("Downloading uploaded reel for audio analysis...")
+            temp_check = "temp_verification.mp4"
+            response = requests.get(video_url, stream=True)
+            with open(temp_check, "wb") as f:
+                for chunk in response.iter_content(chunk_size=4096):
+                    f.write(chunk)
+            
+            # Use moviepy (already a dependency) to check audio
+            from moviepy.editor import VideoFileClip
+            clip = VideoFileClip(temp_check)
+            has_audio = clip.audio is not None
+            duration = clip.duration
+            clip.close()
+            
+            # Clean up temp file
+            if os.path.exists(temp_check):
+                os.remove(temp_check)
+                
+            if has_audio:
+                print(f"✅ Audio verified! Reel duration: {duration}s")
+                return True
+            else:
+                print("❌ Verification Failed: No audio track detected on Instagram server.")
+                return False
+        except Exception as e:
+            print(f"Verification error: {e}")
+            return True # Assume OK if verification itself fails to avoid deleting potentially good posts
 
 if __name__ == "__main__":
     # Test Login

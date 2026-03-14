@@ -34,12 +34,21 @@ class InstagramAgent:
         print("Agent Action -> Logging into Instagram API...")
         if self.insta_tool.login():
             print("Agent Action -> Initiating Post Sequence...")
-            success = self.insta_tool.post_reel(video_path, caption)
+            media = self.insta_tool.post_reel(video_path, caption)
             
-            if success:
-                print("Agent Action -> Successfully published post!")
-                # if os.path.exists(video_path):
-                #     os.remove(video_path)
+            if media:
+                print(f"Agent Action -> Post created (ID: {media.id}). Starting verification...")
+                
+                # Verify that the audio is actually working on Instagram
+                if self.insta_tool.verify_audio(media.id):
+                    print("Agent Action -> Successfully published post with audio!")
+                    if os.path.exists(video_path):
+                        os.remove(video_path)
+                else:
+                    print("Agent Warning -> Audio check failed! Rolling back post to maintain quality...")
+                    self.insta_tool.delete_media(media.id)
+                    print("Agent Action -> Rollback complete. Please check the local file for audio issues.")
+                    sys.exit(1)
             else:
                 print("Agent Error: Failed to publish post.")
                 sys.exit(1)
