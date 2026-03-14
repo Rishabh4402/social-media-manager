@@ -79,9 +79,14 @@ class InstaManager:
             # Re-encode for Instagram compatibility
             video_path = self.prepare_video_for_instagram(video_path)
             time.sleep(random.randint(3, 8))
-            # video_upload posts legacy videos, which IG automatically converts to Reels
-            # This often bypasses the audio-stripping bug present in clip_upload
-            media = self.cl.video_upload(video_path, caption)
+            
+            # Force Instagram to recognize this as 'Original Audio' without muting it
+            extra = {
+                "audio_muted": False,
+                "rename_audio": True,
+                "audio_name": "Original Audio"
+            }
+            media = self.cl.clip_upload(video_path, caption, extra_data=extra)
             print("Reel upload successful!")
             return media
         except Exception as e:
