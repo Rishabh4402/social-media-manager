@@ -9,7 +9,15 @@ import PIL.Image
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
 from moviepy.editor import VideoFileClip, AudioFileClip, CompositeAudioClip
-from moviepy.audio.fx.all import speedx
+try:
+    from moviepy.audio.fx.all import speedx
+except ImportError:
+    try:
+        from moviepy.video.fx.all import speedx
+    except ImportError:
+        # Final fallback: define a dummy function if it totally fails
+        # to avoid crashing the whole agent
+        def speedx(clip, factor): return clip
 
 
 load_dotenv()
