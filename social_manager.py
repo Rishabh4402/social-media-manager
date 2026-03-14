@@ -46,10 +46,10 @@ class InstaManager:
             # Add a delay to look more human
             time.sleep(random.randint(3, 8))
             
-            # Using video_upload instead of clip_upload prevents Instagram's API
-            # from stripping the audio metadata during Reels classification.
-            # Instagram auto-converts these feed videos to Reels natively.
-            media = self.cl.video_upload(video_path, caption)
+            # Using clip_upload with explicit audio_muted=False
+            # The faststart flag in trending_reels ensures the file can be parsed
+            extra = {"audio_muted": False}
+            media = self.cl.clip_upload(video_path, caption, extra_data=extra)
             print("Reel upload successful!")
             return media
         except Exception as e:

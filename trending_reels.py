@@ -283,14 +283,20 @@ class TrendingReelDownloader:
             final = video.set_audio(mixed)
             output = "temp_trending_with_music.mp4"
             
-            # Instagram requires: H.264 video, AAC audio, 44100Hz sample rate
+            # Instagram requires: H.264 video, AAC audio, 44100Hz sample rate, yuv420p, and faststart
             final.write_videofile(
                 output,
                 codec="libx264",
                 audio_codec="aac",
                 fps=24,
                 audio_bitrate="192k",
-                ffmpeg_params=["-ar", "44100", "-ac", "2", "-strict", "experimental"]
+                ffmpeg_params=[
+                    "-ar", "44100", 
+                    "-ac", "2", 
+                    "-strict", "experimental",
+                    "-movflags", "+faststart",  # Critical for Instagram to stream audio
+                    "-pix_fmt", "yuv420p"       # Critical for Instagram color/player support
+                ]
             )
             
             video.close()
