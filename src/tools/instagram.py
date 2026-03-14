@@ -61,6 +61,10 @@ class InstaManager:
             elif "two_factor_required" in msg:
                 print("CRITICAL: 2FA is required but automation failed.")
             print(f"Login failed: {e}")
+            # If login fails, wipe the session file so the next attempt starts fresh
+            if os.path.exists(self.session_file):
+                print("Wiping session file to recover from potential corruption.")
+                os.remove(self.session_file)
             return False
 
     def post_photo(self, photo_path, caption):
