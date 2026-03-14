@@ -247,27 +247,31 @@ class TrendingReelDownloader:
             
             # Mix: if original video has audio, blend them; otherwise just use music
             if video.audio:
+                # Many Pixabay videos have a silent or low-quality track
+                # We prioritize the music while keeping a bit of original ambiance
                 mixed = CompositeAudioClip([
-                    video.audio,
-                    music_audio.volumex(0.4)  # Music at 40% volume
+                    video.audio.volumex(0.3),  # Original audio at 30%
+                    music_audio.volumex(0.8)   # Music boosted to 80%
                 ])
             else:
-                mixed = music_audio.volumex(0.7)  # Music at 70% if no original audio
+                mixed = music_audio.volumex(1.0)  # Music at 100% if no original audio
             
             final = video.set_audio(mixed)
             output = "temp_trending_with_music.mp4"
             
             # Instagram requires: H.264 video, AAC audio, 44100Hz sample rate, yuv420p, and faststart
+            print(f"Writing final video file with optimized audio...")
             final.write_videofile(
                 output,
                 codec="libx264",
                 audio_codec="aac",
                 fps=24,
-                audio_bitrate="192k",
+                temp_audiofile="temp_audio_mix.m4a", # Explicit temp file helps with encoding
+                remove_temp=True,
+                audio_bitrate="128k",
                 ffmpeg_params=[
                     "-ar", "44100", 
                     "-ac", "2", 
-                    "-strict", "experimental",
                     "-movflags", "+faststart",  # Critical for Instagram to stream audio
                     "-pix_fmt", "yuv420p"       # Critical for Instagram color/player support
                 ]

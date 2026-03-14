@@ -38,8 +38,8 @@ class InstagramAgent:
             
             if success:
                 print("Agent Action -> Successfully published post!")
-                if os.path.exists(video_path):
-                    os.remove(video_path)
+                # if os.path.exists(video_path):
+                #     os.remove(video_path)
             else:
                 print("Agent Error: Failed to publish post.")
                 sys.exit(1)
