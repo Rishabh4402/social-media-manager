@@ -55,16 +55,30 @@ class InstaManager:
             else:
                 # If no session, randomize device to avoid fingerprint bans
                 print("Setting fresh device fingerprint...")
+                
+                # Randomized but consistent device info
+                device_id = self.cl.generate_device_id()
+                uuid = self.cl.generate_uuid()
+                ad_id = self.cl.generate_ad_id()
+                
+                # Detailed device parameters
+                # We use a very common current device to avoid suspicion
+                android_version = random.randint(28, 32) # Android 9-12
                 self.cl.set_device({
                     "app_version": "364.0.0.35.86",
-                    "android_version": random.randint(24, 30),
-                    "android_release": f"{random.randint(7, 11)}.0.0",
-                    "dpi": f"{random.choice([320, 480, 640])}dpi",
-                    "resolution": random.choice(["720x1280", "1080x1920", "1440x2560"]),
-                    "manufacturer": random.choice(["Samsung", "OnePlus", "Google", "Xiaomi"]),
-                    "device": random.choice(["s21", "6T", "pixel5", "mi11"]),
-                    "model": random.choice(["SM-G991B", "ONEPLUS A6013", "Pixel 5", "M2011K2C"]),
+                    "android_version": android_version,
+                    "android_release": str(android_version - 18), # Approximate
+                    "dpi": "480dpi",
+                    "resolution": "1080x1920",
+                    "manufacturer": "Samsung",
+                    "device": "SM-G991B",
+                    "model": "galaxy-s21",
+                    "cpu": "exynos2100",
+                    "version_code": "374010953"
                 })
+                
+                # Warm-up: Small delay to simulate app initialization
+                time.sleep(random.randint(2, 4))
 
             # Login with verification code if available
             self.cl.login(self.username, self.password, verification_code=verification_code)
