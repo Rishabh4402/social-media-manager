@@ -9,6 +9,7 @@ import PIL.Image
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
 from moviepy.editor import VideoFileClip, AudioFileClip, CompositeAudioClip
+from moviepy.audio.fx.all import speedx
 
 
 load_dotenv()
@@ -250,10 +251,10 @@ class TrendingReelDownloader:
                 # We boost both and apply a TINY speed change to bypass copyright bots
                 # A 1% change is imperceptible to humans but breaks automated fingerprinting
                 v_audio = video.audio.volumex(0.5)
-                m_audio = music_audio.volumex(1.5).fx(lambda c: c.speedx(0.99)) # Subtle speed change
+                m_audio = music_audio.volumex(1.5).fx(speedx, 0.99) # Subtle speed change
                 mixed = CompositeAudioClip([v_audio, m_audio])
             else:
-                mixed = music_audio.volumex(1.2).fx(lambda c: c.speedx(0.99))
+                mixed = music_audio.volumex(1.2).fx(speedx, 0.99)
             
             # Ensure the audio lasts the full duration of the video
             mixed = mixed.set_duration(video.duration)

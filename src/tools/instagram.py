@@ -191,6 +191,11 @@ class InstaManager:
         """Verify the uploaded reel has a working audio track."""
         print(f"Verifying audio for post {media_id}...")
         try:
+            # Ensure we are logged in before fetching media info
+            if not self.cl.user_id:
+                print("Session lost before verification. Re-logging...")
+                self.login()
+            
             # Wait a few seconds for Instagram's processing to finish
             time.sleep(10)
             
