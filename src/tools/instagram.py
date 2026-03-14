@@ -143,7 +143,8 @@ class InstaManager:
                 if "Unknown" in msg and "'status': 'ok'" in msg:
                     print("Detected 'Unknown' but successful response. Fetching latest post to verify...")
                     time.sleep(5)
-                    user_id = self.cl.user_id_from_username(self.username)
+                    # Use internal user_id from session to avoid rate-limited public GQL requests
+                    user_id = self.cl.user_id
                     medias = self.cl.user_medias(user_id, amount=1)
                     if medias:
                         print(f"Latest post recovered: {medias[0].id}")
