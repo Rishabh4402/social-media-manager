@@ -32,6 +32,7 @@ jobs:
           echo "PEXELS_API_KEY=${{ secrets.PEXELS_API_KEY }}" >> .env
           echo "PIXABAY_API_KEY=${{ secrets.PIXABAY_API_KEY }}" >> .env
           echo "IG_2FA_SEED=${{ secrets.IG_2FA_SEED }}" >> .env
+          echo "IG_SESSIONID=${{ secrets.IG_SESSIONID }}" >> .env
           echo "IG_PROXY=${{ secrets.IG_PROXY }}" >> .env
 
       - name: Run Agent
@@ -41,6 +42,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
           IG_2FA_SEED: ${{ secrets.IG_2FA_SEED }}
+          IG_SESSIONID: ${{ secrets.IG_SESSIONID }}
           IG_PROXY: ${{ secrets.IG_PROXY }}
           PYTHONPATH: ${{ github.workspace }}
         run: python main.py
