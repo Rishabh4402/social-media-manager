@@ -1,3 +1,4 @@
+import pyotp
 from instagrapi import Client
 import os
 import subprocess
@@ -12,8 +13,15 @@ class InstaManager:
         self.cl = Client()
         self.username = os.getenv("IG_USERNAME")
         self.password = os.getenv("IG_PASSWORD")
+        self.two_factor_seed = os.getenv("IG_2FA_SEED")
+        self.proxy = os.getenv("IG_PROXY")
+        
         base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.session_file = os.path.join(base_path, "ig_session.json")
+        
+        if self.proxy:
+            print(f"Using proxy: {self.proxy}")
+            self.cl.set_proxy(self.proxy)
 
     def challenge_code_handler(self, username, choice):
         print(f"--- Instagram Challenge Required for {username} ---")
@@ -24,19 +32,34 @@ class InstaManager:
     def login(self):
         print(f"Attempting login as {self.username}...")
         self.cl.challenge_code_handler = self.challenge_code_handler
+        
+        # Prep 2FA code if seed is provided
+        verification_code = None
+        if self.two_factor_seed:
+            try:
+                totp = pyotp.TOTP(self.two_factor_seed.replace(" ", ""))
+                verification_code = totp.now()
+                print("Generated 2FA verification code automatically.")
+            except Exception as e:
+                print(f"Failed to generate 2FA code: {e}")
+
         try:
             if os.path.exists(self.session_file):
                 self.cl.load_settings(self.session_file)
                 print("Loaded existing session.")
             
-            self.cl.login(self.username, self.password)
+            # Login with verification code if available
+            self.cl.login(self.username, self.password, verification_code=verification_code)
             self.cl.dump_settings(self.session_file)
             print("Login successful.")
             return True
         except Exception as e:
-            if "challenge_required" in str(e).lower():
+            msg = str(e).lower()
+            if "challenge_required" in msg:
                 print("CRITICAL: Instagram requires a security challenge.")
                 print("Please log in to your Instagram app on your phone and approve the login attempt.")
+            elif "two_factor_required" in msg:
+                print("CRITICAL: 2FA is required but automation failed.")
             print(f"Login failed: {e}")
             return False
 

@@ -54,6 +54,8 @@ Add these in **Settings > Secrets and variables > Actions**:
 |--------|-------------|
 | `IG_USERNAME` | Instagram email/username |
 | `IG_PASSWORD` | Instagram password |
+| `IG_2FA_SEED` | (Optional) 2FA Secret Key for automated login |
+| `IG_PROXY` | (Optional) Proxy URL (e.g., `http://user:pass@host:port`) |
 | `GEMINI_API_KEY` | Google AI Studio API key |
 | `PIXABAY_API_KEY` | Pixabay API key for trending videos |
 | `CONTENT_NICHE` | Content niche (e.g., "Fascinating Science Facts") |
@@ -90,7 +92,10 @@ Add these in **Settings > Secrets and variables > Actions**:
 - **`overlay_text()`**: Uses `PIL (Pillow)` to draw formatted text on top of generated images for photo posts.
 
 ### 4. Instagram API Tool (`src/tools/instagram.py`)
-- **`login()`**: Implements a session-caching mechanism (`ig_session.json`). It attempts to reload an existing session to avoid repeated logins and potential bot detection.
+- **`login()`**: 
+    - Implements a session-caching mechanism (`ig_session.json`).
+    - **Automated 2FA**: If `IG_2FA_SEED` is provided, it uses `pyotp` to generate a 6-digit verification code on-the-fly, making the agent truly autonomous.
+    - **Blacklist Prevention**: Supports `IG_PROXY` to route traffic through a clean residential IP, bypassing server-side IP bans.
 - **`post_reel()`**: Uses `clip_upload` with explicit `extra_data={"audio_muted": False}` to bypass Instagram's automated audio-stripping algorithms.
 
 ### 5. Memory Module (`src/memory/history.py`)
