@@ -15,8 +15,15 @@ class InstaManager:
         base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.session_file = os.path.join(base_path, "ig_session.json")
 
+    def challenge_code_handler(self, username, choice):
+        print(f"--- Instagram Challenge Required for {username} ---")
+        print(f"A verification code was sent via {choice}")
+        code = input("Please enter the verification code: ")
+        return code
+
     def login(self):
         print(f"Attempting login as {self.username}...")
+        self.cl.challenge_code_handler = self.challenge_code_handler
         try:
             if os.path.exists(self.session_file):
                 self.cl.load_settings(self.session_file)
@@ -27,6 +34,9 @@ class InstaManager:
             print("Login successful.")
             return True
         except Exception as e:
+            if "challenge_required" in str(e).lower():
+                print("CRITICAL: Instagram requires a security challenge.")
+                print("Please log in to your Instagram app on your phone and approve the login attempt.")
             print(f"Login failed: {e}")
             return False
 
