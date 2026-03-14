@@ -45,5 +45,4 @@ else:
         except Exception as e:
             print('Could not parse downloaded video locally:', e)
         
-        if os.path.exists(out_path):
-            os.remove(out_path)
+        # Keep file for analysis

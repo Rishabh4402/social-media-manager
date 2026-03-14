@@ -3,7 +3,8 @@ import os
 import json
 import random
 from dotenv import load_dotenv
-from content_gen import ContentGenerator
+from src.tools.llm import ContentGenerator
+from src.memory.history import HistoryManager
 import PIL.Image
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
@@ -67,39 +68,12 @@ VIRAL_HASHTAGS = [
     "#cinematicvideo", "#earthporn", "#stunningviews"
 ]
 
-HISTORY_FILE = "posted_history.json"
-
-
 class TrendingReelDownloader:
     def __init__(self):
         self.pixabay_key = os.getenv("PIXABAY_API_KEY")
         self.content_gen = ContentGenerator()
-        self.history = self._load_history()
+        self.history = HistoryManager()
 
-    def _load_history(self):
-        if os.path.exists(HISTORY_FILE):
-            try:
-                with open(HISTORY_FILE, "r") as f:
-                    return json.load(f)
-            except:
-                pass
-        return {"posted_ids": [], "used_music_ids": []}
-
-    def _save_history(self, video_id, music_id=None):
-        self.history["posted_ids"].append(video_id)
-        if music_id:
-            self.history.setdefault("used_music_ids", []).append(music_id)
-        # Keep last 200 entries to avoid infinite growth
-        self.history["posted_ids"] = self.history["posted_ids"][-200:]
-        self.history["used_music_ids"] = self.history.get("used_music_ids", [])[-200:]
-        with open(HISTORY_FILE, "w") as f:
-            json.dump(self.history, f)
-
-    def _is_already_posted(self, video_id):
-        return video_id in self.history["posted_ids"]
-
-    def _is_music_used(self, music_id):
-        return music_id in self.history.get("used_music_ids", [])
 
     def get_trending_video(self):
         """Fetch a popular, never-before-posted video from Pixabay."""
@@ -138,7 +112,7 @@ class TrendingReelDownloader:
                 # Find a video that hasn't been posted yet
                 for video in hits:
                     vid_id = video.get("id")
-                    if self._is_already_posted(vid_id):
+                    if self.history.is_video_posted(vid_id):
                         continue
 
                     # Get the best quality video URL
@@ -221,7 +195,7 @@ class TrendingReelDownloader:
                 hits = res.json().get("hits", [])
                 for v in random.sample(hits, min(5, len(hits))):
                     vid_id = v.get("id")
-                    if self._is_music_used(vid_id):
+                    if self.history.is_music_used(vid_id):
                         continue
                     dl_url = (
                         v.get("videos", {}).get("small", {}).get("url")
@@ -370,7 +344,7 @@ class TrendingReelDownloader:
         print(f"Caption: {caption[:100]}...")
 
         # Save this video ID and music ID so they're never reused
-        self._save_history(vid_id, getattr(self, '_current_music_id', None))
+        self.history.save(vid_id, getattr(self, '_current_music_id', None))
 
         return video_path, caption
 

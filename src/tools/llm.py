@@ -23,16 +23,24 @@ class ContentGenerator:
         else:
             self.client = None
 
-    def generate_text_gemini(self, prompt):
+    def generate_text_gemini(self, prompt, system_instruction):
         if not self.client:
             return None
+        
+        # New google-genai SDK config for system instruction
+        from google.genai import types
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+        )
+        
         response = self.client.models.generate_content(
             model=self.model_id,
-            contents=prompt
+            contents=prompt,
+            config=config
         )
         return response.text.strip()
 
-    def generate_text_hf(self, prompt):
+    def generate_text_hf(self, prompt, system_instruction):
         if not self.hf_token:
             return None
         
@@ -40,7 +48,8 @@ class ContentGenerator:
         API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
         headers = {"Authorization": f"Bearer {self.hf_token}"}
         
-        formatted_prompt = f"<s>[INST] {prompt} [/INST]"
+        # Mistral uses <<SYS>> for system prompt injection
+        formatted_prompt = f"<s>[INST] <<SYS>>\n{system_instruction}\n<</SYS>>\n\n{prompt} [/INST]"
         response = requests.post(API_URL, headers=headers, json={"inputs": formatted_prompt})
         
         if response.status_code == 200:
@@ -54,25 +63,37 @@ class ContentGenerator:
         angles = ["mind-blowing", "unbelievable", "odd but true", "terrifyingly cool", "obscure", "viral-style"]
         angle = random.choice(angles)
         
+        try:
+            # Resolve absolute path from project root
+            base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            prompt_path = os.path.join(base_path, "system_instructions", "instagram_manager.xml")
+            with open(prompt_path, "r") as f:
+                system_instruction = f.read().strip()
+        except Exception as e:
+            print(f"Could not read {prompt_path}: {e}")
+            system_instruction = (
+                "You are an expert social media content creator. Generate a fascinating, unique fact. "
+                "Rules: One sentence only. No vulgarity, no sensitive matters. "
+                "Format: the fact on the first line, then on a new line provide a 3-word image prompt for a cinematic background."
+            )
+        
         prompt = (
-            f"Generate a {angle} and fascinating fact about {self.niche}. "
-            "It must be unique and different from common knowledge. "
-            "Instruction: One sentence only. No vulgarity, no sensitive matters. "
-            f"Randomness seed: {random.randint(1, 1000000)}. "
-            "Then on a new line provide a 3-word image prompt for a cinematic background."
+            f"Topic Niche: {self.niche}\n"
+            f"Vibe to use: {angle}\n"
+            f"Randomness seed: {random.randint(1, 1000000)}"
         )
         
         text = None
         # Try Gemini First
         try:
-            text = self.generate_text_gemini(prompt)
+            text = self.generate_text_gemini(prompt, system_instruction)
         except Exception as e:
             print(f"Gemini failed: {e}")
         
         # Try Hugging Face Second
         if not text:
             print("Trying fallback / Hugging Face...")
-            text = self.generate_text_hf(prompt)
+            text = self.generate_text_hf(prompt, system_instruction)
             
         if not text:
             raise Exception("All text generation sources failed. Please check your API keys.")

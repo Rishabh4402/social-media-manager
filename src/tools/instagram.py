@@ -12,7 +12,8 @@ class InstaManager:
         self.cl = Client()
         self.username = os.getenv("IG_USERNAME")
         self.password = os.getenv("IG_PASSWORD")
-        self.session_file = "ig_session.json"
+        base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.session_file = os.path.join(base_path, "ig_session.json")
 
     def login(self):
         print(f"Attempting login as {self.username}...")

@@ -1,80 +1,43 @@
 # 🤖 Social Media Manager Agent
 
-An automated agent that posts engaging Instagram content daily using AI and trending videos.
-
-## 📋 Table of Contents
-- [Overview](#overview)
-- [How it Works](#how-it-works)
-- [Trending Reels](#trending-reels)
-- [Project Structure](#project-structure)
-- [Setup Instructions](#setup-instructions)
-- [GitHub Secrets](#github-secrets)
-- [GitHub Automation](#github-automation)
-- [Safety & Content Policy](#safety-content-policy)
+An autonomous agent that posts engaging Instagram content daily using AI and trending videos.
 
 ---
 
-## 🚀 Overview
-This agent automates the entire lifecycle of Instagram content:
-1. **AI-Powered Captions**: Uses **Gemini** to generate viral captions with trending hashtags.
-2. **Trending Reels**: Downloads the **most popular videos** from Pixabay (with sound) and posts them directly.
-3. **Photo Posts**: Generates AI images with fact overlays for static posts.
-4. **Auto-Alternating**: Posts a **Photo** on odd days and a **Reel** on even days.
-5. **Zero Repeats**: Tracks every posted video to guarantee fresh content every single day.
+## 🌟 The Vision
+The **Social Media Manager Agent** is an autonomous AI presence designed to grow your Instagram influence without human intervention. By merging creative AI "thinking" with real-world trending data, it creates a persistent, high-quality stream of content that feels human but operates at the scale of automation.
 
-## ⚙️ How it Works
-1. **Brain**: AI generates a unique fact and viral caption with trending hashtags.
-2. **Eyes**: Pixabay API finds the most popular, high-view-count videos on trending topics.
-3. **Voice**: `instagrapi` logs in and uploads the content to Instagram.
-4. **Memory**: A history file tracks all posted video IDs — no video is ever posted twice.
+It doesn't just "post"; it **orchestrates**—selecting topics, searching for viral visuals, composing copy, and managing platform credentials autonomously.
 
-## 🎬 Trending Reels
-- **80+ Trending Topics**: Spiritual, Motivational, Animation, Science, Tech & AI, Music, Nature, and India Specials.
-- **Audio Included**: Pixabay videos come with cinematic sound/music.
-- **Bilingual Captions**: English + Hindi (including Shayari & motivational quotes).
-- **Global Hashtags**: Curated for Indian, European, and US audiences.
-- **Sorted by Popularity**: Only the most-viewed videos are selected.
-- **Never Repeats**: History tracking ensures every post is unique.
+---
 
-## 📁 Project Structure
-| File | Purpose |
-|------|---------|
-| `main.py` | Central orchestrator — alternates between Photo and Reel |
-| `content_gen.py` | AI text generation (Gemini + HuggingFace fallback) and image creation |
-| `trending_reels.py` | Downloads trending Pixabay videos with sound and viral captions |
-| `social_manager.py` | Instagram login and upload (photo + reel) |
-| `posted_history.json` | Tracks posted video IDs to prevent duplicates |
-| `requirements.txt` | Python dependencies |
-| `.github/workflows/daily_post.yml` | GitHub Actions daily automation |
+## 🚀 Key Features
+- **AI-Powered Captions**: Generates viral copy tailored to your niche.
+- **Trending Visuals**: Automatically scouts and edits high-engagement reels.
+- **Autonomous Scheduling**: Runs once a day via GitHub Actions.
+- **Intelligent Memory**: Never posts the same content twice.
 
-## 🛠 Setup Instructions
+---
 
-### Local Run
-1. Clone the repo
-2. `pip install -r requirements.txt`
-3. Copy `.env.template` to `.env` and fill in your keys
-4. Run: `python3 main.py`
+## 🛠 Quick Start
 
-## 🔑 GitHub Secrets
-Add these in **Settings > Secrets and variables > Actions**:
+1. **Clone & Setup**:
+   ```bash
+   git clone https://github.com/Rishabh4402/social-media-manager
+   pip install -r requirements.txt
+   ```
+2. **Configure**: Fill your `.env` with keys (see full docs for details).
+3. **Run**:
+   ```bash
+   python3 main.py
+   ```
 
-| Secret | Description |
-|--------|-------------|
-| `IG_USERNAME` | Instagram email/username |
-| `IG_PASSWORD` | Instagram password |
-| `GEMINI_API_KEY` | Google AI Studio API key |
-| `PIXABAY_API_KEY` | Pixabay API key for trending videos |
-| `CONTENT_NICHE` | Content niche (e.g., "Fascinating Science Facts") |
+---
 
-## 🤖 GitHub Automation
-- Runs **daily at 09:00 UTC** via GitHub Actions.
-- Auto-commits `posted_history.json` after each run to track posted videos.
-- Can be triggered manually from the **Actions** tab.
+## 🏗 Detailed Architecture
+For an exact technical picture of how the orchestrator, tools, and memory work together, please refer to the:
 
-## 🛡 Safety & Content Policy
-- All AI-generated content is filtered for **no vulgarity** and **no sensitive matters**.
-- Pixabay videos are **royalty-free** and safe to use commercially.
-- Trending hashtags are curated to avoid shadowbanned or inappropriate tags.
+### [👉 Technical Table of Contents & Architecture Guide](ARCHITECTURE.md)
 
 ---
 *Built for automated Instagram growth* 🚀

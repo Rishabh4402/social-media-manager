@@ -33,6 +33,8 @@ jobs:
           echo "PIXABAY_API_KEY=${{ secrets.PIXABAY_API_KEY }}" >> .env
 
       - name: Run Agent
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: python main.py
 
       - name: Save Post History
