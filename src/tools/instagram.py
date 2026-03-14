@@ -125,9 +125,14 @@ class InstaManager:
             # Add a delay to look more human
             time.sleep(random.randint(3, 8))
             
-            # Using clip_upload with explicit audio_muted=False
-            # The faststart flag in trending_reels ensures the file can be parsed
-            extra = {"audio_muted": False}
+            # Using robust flags to ensure audio persistence
+            extra = {
+                "audio_muted": False,
+                "disable_pull_to_refresh_audio": False,
+                "is_audio_stream_static": True
+            }
+            # Set a longer timeout for video configuration to ensure audio tracks process
+            self.cl.request_timeout = 60
             media = self.cl.clip_upload(video_path, caption, extra_data=extra)
             print("Reel upload successful!")
             return media

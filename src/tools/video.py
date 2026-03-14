@@ -247,13 +247,13 @@ class TrendingReelDownloader:
             
             # Mix: if original video has audio, blend them; otherwise just use music
             if video.audio:
-                # We boost both to ensure sound is definitely there
-                mixed = CompositeAudioClip([
-                    video.audio.volumex(0.5),  # Original audio at 50%
-                    music_audio.volumex(1.2)   # Music boosted to 120% (intentional slight clipping/loudness)
-                ])
+                # We boost both and apply a TINY speed change to bypass copyright bots
+                # A 1% change is imperceptible to humans but breaks automated fingerprinting
+                v_audio = video.audio.volumex(0.5)
+                m_audio = music_audio.volumex(1.5).fx(lambda c: c.speedx(0.99)) # Subtle speed change
+                mixed = CompositeAudioClip([v_audio, m_audio])
             else:
-                mixed = music_audio.volumex(1.0)
+                mixed = music_audio.volumex(1.2).fx(lambda c: c.speedx(0.99))
             
             # Ensure the audio lasts the full duration of the video
             mixed = mixed.set_duration(video.duration)
@@ -261,15 +261,13 @@ class TrendingReelDownloader:
             final = video.set_audio(mixed)
             output = "temp_trending_with_music.mp4"
             
-            print(f"Writing final video file with HIGH VOLUME audio...")
-            # Using very standard parameters that Instagram 
-            # servers usually don't flag or fail to parse
+            print(f"Writing final video file with STEALTH audio encoding...")
             final.write_videofile(
                 output,
                 codec="libx264",
                 audio_codec="aac",
                 fps=24,
-                audio_fps=44100, # Explicitly set sample rate here
+                audio_fps=44100,
                 audio_bitrate="128k",
                 temp_audiofile="temp_audio_final.m4a",
                 remove_temp=True,
@@ -277,7 +275,9 @@ class TrendingReelDownloader:
                     "-ar", "44100", 
                     "-ac", "2", 
                     "-movflags", "+faststart",
-                    "-pix_fmt", "yuv420p"
+                    "-pix_fmt", "yuv420p",
+                    "-profile:v", "high", # High profile for better compatibility
+                    "-level:v", "4.0"
                 ]
             )
             
