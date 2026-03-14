@@ -247,33 +247,37 @@ class TrendingReelDownloader:
             
             # Mix: if original video has audio, blend them; otherwise just use music
             if video.audio:
-                # Many Pixabay videos have a silent or low-quality track
-                # We prioritize the music while keeping a bit of original ambiance
+                # We boost both to ensure sound is definitely there
                 mixed = CompositeAudioClip([
-                    video.audio.volumex(0.3),  # Original audio at 30%
-                    music_audio.volumex(0.8)   # Music boosted to 80%
+                    video.audio.volumex(0.5),  # Original audio at 50%
+                    music_audio.volumex(1.2)   # Music boosted to 120% (intentional slight clipping/loudness)
                 ])
             else:
-                mixed = music_audio.volumex(1.0)  # Music at 100% if no original audio
+                mixed = music_audio.volumex(1.0)
+            
+            # Ensure the audio lasts the full duration of the video
+            mixed = mixed.set_duration(video.duration)
             
             final = video.set_audio(mixed)
             output = "temp_trending_with_music.mp4"
             
-            # Instagram requires: H.264 video, AAC audio, 44100Hz sample rate, yuv420p, and faststart
-            print(f"Writing final video file with optimized audio...")
+            print(f"Writing final video file with HIGH VOLUME audio...")
+            # Using very standard parameters that Instagram 
+            # servers usually don't flag or fail to parse
             final.write_videofile(
                 output,
                 codec="libx264",
                 audio_codec="aac",
                 fps=24,
-                temp_audiofile="temp_audio_mix.m4a", # Explicit temp file helps with encoding
-                remove_temp=True,
+                audio_fps=44100, # Explicitly set sample rate here
                 audio_bitrate="128k",
+                temp_audiofile="temp_audio_final.m4a",
+                remove_temp=True,
                 ffmpeg_params=[
                     "-ar", "44100", 
                     "-ac", "2", 
-                    "-movflags", "+faststart",  # Critical for Instagram to stream audio
-                    "-pix_fmt", "yuv420p"       # Critical for Instagram color/player support
+                    "-movflags", "+faststart",
+                    "-pix_fmt", "yuv420p"
                 ]
             )
             
