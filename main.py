@@ -1,33 +1,50 @@
 from content_gen import ContentGenerator
+from trending_reels import TrendingReelDownloader
 from social_manager import InstaManager
 import os
 import sys
+import datetime
+
+def get_next_post_type():
+    day_of_year = datetime.datetime.now().timetuple().tm_yday
+    return "reel" if day_of_year % 2 == 0 else "photo"
 
 def main():
     print("--- Social Media Manager Agent Start ---")
     
-    # 1. Generate Content
-    gen = ContentGenerator()
-    file_path, caption = gen.create_post()
+    post_type = get_next_post_type()
+    print(f"Today's post type: {post_type}")
+
+    file_path = None
+    caption = ""
+
+    if post_type == "reel":
+        tr = TrendingReelDownloader()
+        file_path, caption = tr.create_reel()
+    else:
+        gen = ContentGenerator()
+        file_path, caption = gen.create_post()
     
     if not file_path:
         print("Failed to generate content.")
         sys.exit(1)
         
     print(f"Content ready: {file_path}")
-    print(f"Caption: {caption}")
 
-    # 2. Upload to Instagram
+    # Upload to Instagram
     mgr = InstaManager()
     if mgr.login():
-        success = mgr.post_photo(file_path, caption)
+        if post_type == "reel":
+            success = mgr.post_reel(file_path, caption)
+        else:
+            success = mgr.post_photo(file_path, caption)
+            
         if success:
-            print("Successfully posted to Instagram!")
-            # Clean up
+            print(f"Successfully posted {post_type} to Instagram!")
             if os.path.exists(file_path):
                 os.remove(file_path)
         else:
-            print("Failed to post to Instagram.")
+            print(f"Failed to post {post_type}.")
             sys.exit(1)
     else:
         print("Instagram login failed.")

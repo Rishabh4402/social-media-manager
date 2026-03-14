@@ -1,5 +1,6 @@
 from instagrapi import Client
 import os
+import subprocess
 from dotenv import load_dotenv
 import time
 import random
@@ -40,9 +41,44 @@ class InstaManager:
             print(f"Upload failed: {e}")
             return None
 
-    def post_reel(self, video_path, caption):
-        print(f"Uploading reel with caption: {caption}")
+    def prepare_video_for_instagram(self, video_path):
+        """Re-encode video to Instagram-exact specs to preserve audio."""
+        output = "temp_ig_ready.mp4"
         try:
+            cmd = [
+                "ffmpeg", "-y", "-i", video_path,
+                "-c:v", "libx264",        # H.264 video
+                "-preset", "fast",
+                "-crf", "23",
+                "-c:a", "aac",            # AAC audio
+                "-b:a", "128k",           # 128kbps bitrate (Instagram standard)
+                "-ar", "44100",           # 44100 Hz sample rate
+                "-ac", "2",              # Stereo
+                "-movflags", "+faststart", # moov atom at front (critical for Instagram)
+                "-pix_fmt", "yuv420p",    # Required pixel format
+                "-r", "30",              # 30 fps
+                output
+            ]
+            print("Re-encoding video for Instagram compatibility...")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if result.returncode == 0 and os.path.exists(output):
+                print(f"Video re-encoded successfully ({os.path.getsize(output)/1024/1024:.1f} MB)")
+                if os.path.exists(video_path): os.remove(video_path)
+                return output
+            else:
+                print(f"FFmpeg error: {result.stderr[:200]}")
+        except FileNotFoundError:
+            print("FFmpeg not found locally, using original video.")
+        except Exception as e:
+            print(f"Re-encode failed: {e}")
+        return video_path
+
+    def post_reel(self, video_path, caption):
+        print(f"Uploading reel with caption: {caption[:80]}...")
+        try:
+            # Re-encode for Instagram compatibility
+            video_path = self.prepare_video_for_instagram(video_path)
+            time.sleep(random.randint(3, 8))
             media = self.cl.clip_upload(video_path, caption)
             print("Reel upload successful!")
             return media

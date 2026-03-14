@@ -10,19 +10,73 @@ load_dotenv()
 
 class ContentGenerator:
     def __init__(self):
-        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        self.gemini_key = os.getenv("GEMINI_API_KEY")
+        self.hf_token = os.getenv("HF_TOKEN")
         self.niche = os.getenv("CONTENT_NICHE", "Fascinating Space Facts")
-        self.model_id = "gemini-flash-latest"
-
-    def generate_text(self):
-        prompt = f"Generate a short, viral, and fascinating {self.niche}. It should be one sentence long. No vulgarity, no pillory, no sensitive matters. Provide the fact first, then on a new line provide a 3-word image prompt."
         
+        if self.gemini_key and not self.gemini_key.startswith("your_"):
+            try:
+                self.client = genai.Client(api_key=self.gemini_key)
+                self.model_id = "gemini-flash-latest"
+            except:
+                self.client = None
+        else:
+            self.client = None
+
+    def generate_text_gemini(self, prompt):
+        if not self.client:
+            return None
         response = self.client.models.generate_content(
             model=self.model_id,
             contents=prompt
         )
-        text = response.text.strip()
+        return response.text.strip()
+
+    def generate_text_hf(self, prompt):
+        if not self.hf_token:
+            return None
         
+        # Using Mistral or GPT-2 as a free fallback on Hugging Face
+        API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+        headers = {"Authorization": f"Bearer {self.hf_token}"}
+        
+        formatted_prompt = f"<s>[INST] {prompt} [/INST]"
+        response = requests.post(API_URL, headers=headers, json={"inputs": formatted_prompt})
+        
+        if response.status_code == 200:
+            res_json = response.json()
+            if isinstance(res_json, list) and len(res_json) > 0:
+                return res_json[0].get('generated_text', '').split('[/INST]')[-1].strip()
+        return None
+
+    def generate_text(self):
+        # Adding a random "vibe" or "angle" to force variety
+        angles = ["mind-blowing", "unbelievable", "odd but true", "terrifyingly cool", "obscure", "viral-style"]
+        angle = random.choice(angles)
+        
+        prompt = (
+            f"Generate a {angle} and fascinating fact about {self.niche}. "
+            "It must be unique and different from common knowledge. "
+            "Instruction: One sentence only. No vulgarity, no sensitive matters. "
+            f"Randomness seed: {random.randint(1, 1000000)}. "
+            "Then on a new line provide a 3-word image prompt for a cinematic background."
+        )
+        
+        text = None
+        # Try Gemini First
+        try:
+            text = self.generate_text_gemini(prompt)
+        except Exception as e:
+            print(f"Gemini failed: {e}")
+        
+        # Try Hugging Face Second
+        if not text:
+            print("Trying fallback / Hugging Face...")
+            text = self.generate_text_hf(prompt)
+            
+        if not text:
+            raise Exception("All text generation sources failed. Please check your API keys.")
+
         # Simple extraction logic
         lines = [line.strip() for line in text.split('\n') if line.strip()]
         fact = lines[0].replace('"', '')
@@ -31,20 +85,16 @@ class ContentGenerator:
         return fact, image_prompt
 
     def generate_image(self, prompt):
-        # Primary: Pollinations.ai
         encoded_prompt = requests.utils.quote(prompt)
         p_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1350&nologo=true"
-        
-        # Fallback: LoremFlickr (based on niche keywords)
-        keywords = prompt.replace(" ", ",")
-        f_url = f"https://loremflickr.com/1080/1350/{keywords}"
+        f_url = f"https://loremflickr.com/1080/1350/{prompt.replace(' ', ',')}"
         
         for url in [p_url, f_url]:
             try:
                 print(f"Trying image source: {url}")
                 response = requests.get(url, timeout=30)
                 if response.status_code == 200:
-                    if b"jfif" in response.content[:100].lower() or b"png" in response.content[:100].lower() or b"exif" in response.content[:100].lower() or response.content.startswith(b'\xff\xd8'):
+                    if response.content.startswith(b'\xff\xd8') or b"png" in response.content[:100].lower():
                         return Image.open(io.BytesIO(response.content))
             except Exception as e:
                 print(f"Source {url} failed: {e}")
@@ -54,28 +104,23 @@ class ContentGenerator:
         draw = ImageDraw.Draw(image)
         width, height = image.size
         
-        # Use a default font if custom isn't available
         font = None
         try:
-            # Common paths for fonts on macOS
             font_paths = [
                 "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
                 "/System/Library/Fonts/Helvetica.ttc",
-                "/System/Library/Fonts/Arial.ttf",
                 "/Library/Fonts/Arial.ttf"
             ]
             for path in font_paths:
                 if os.path.exists(path):
                     font = ImageFont.truetype(path, 60)
                     break
-        except Exception as e:
-            print(f"Font loading error: {e}")
+        except:
+            pass
 
         if not font:
-            print("Using default font.")
             font = ImageFont.load_default()
 
-        # Wrap text
         max_width = width - 100
         words = text.split()
         lines = []
@@ -89,56 +134,37 @@ class ContentGenerator:
                 current_line = [word]
         lines.append(" ".join(current_line))
 
-        # Draw semi-transparent overlay
         overlay = Image.new('RGBA', image.size, (0, 0, 0, 0))
         d = ImageDraw.Draw(overlay)
-        
         line_height = 80
         total_height = len(lines) * line_height
         y = (height - total_height) // 2
-        
-        # Background box for readability
         d.rectangle([50, y-20, width-50, y+total_height+20], fill=(0, 0, 0, 160))
-        
         image.paste(overlay, (0, 0), overlay)
         
-        # Draw text
         draw = ImageDraw.Draw(image)
         for line in lines:
             bbox = draw.textbbox((0, 0), line, font=font)
-            line_width = bbox[2] - bbox[0]
-            x = (width - line_width) // 2
+            x = (width - (bbox[2] - bbox[0])) // 2
             draw.text((x, y), line, font=font, fill="white")
             y += line_height
 
         return image
 
     def create_post(self):
-        print("Generating text via Gemini...")
         try:
             fact, img_prompt = self.generate_text()
-            print(f"Fact: {fact}")
-            print(f"Image Prompt: {img_prompt}")
+            image = self.generate_image(img_prompt)
+            if not image: return None, None
+            final_image = self.overlay_text(image, fact)
+            filename = "temp_post.jpg"
+            final_image.convert('RGB').save(filename)
+            return filename, fact
         except Exception as e:
-            print(f"Text generation failed: {e}")
+            print(f"Error: {e}")
             return None, None
-        
-        print("Generating image via Pollinations...")
-        image = self.generate_image(img_prompt)
-        if not image:
-            print("Failed to get image.")
-            return None, None
-            
-        print("Applying text overlay...")
-        final_image = self.overlay_text(image, fact)
-        
-        filename = "temp_post.jpg"
-        final_image.convert('RGB').save(filename)
-        return filename, fact
 
 if __name__ == "__main__":
     gen = ContentGenerator()
-    file, caption = gen.create_post()
-    if file:
-        print(f"Created: {file}")
-        print(f"Caption: {caption}")
+    f, c = gen.create_post()
+    if f: print(f"Output: {f}")
