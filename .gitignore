@@ -1,5 +1,5 @@
 .env
-__pycache__/
+**/__pycache__/
 *.mp4
 .DS_Store
 ig_session.json
