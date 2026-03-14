@@ -33,6 +33,11 @@ class InstaManager:
         print(f"Attempting login as {self.username}...")
         self.cl.challenge_code_handler = self.challenge_code_handler
         
+        # Human-like delay before login attempt
+        delay = random.randint(5, 12)
+        print(f"Waiting {delay} seconds to simulate human activity...")
+        time.sleep(delay)
+
         # Prep 2FA code if seed is provided
         verification_code = None
         if self.two_factor_seed:
@@ -47,7 +52,20 @@ class InstaManager:
             if os.path.exists(self.session_file):
                 self.cl.load_settings(self.session_file)
                 print("Loaded existing session.")
-            
+            else:
+                # If no session, randomize device to avoid fingerprint bans
+                print("Setting fresh device fingerprint...")
+                self.cl.set_device({
+                    "app_version": "364.0.0.35.86",
+                    "android_version": random.randint(24, 30),
+                    "android_release": f"{random.randint(7, 11)}.0.0",
+                    "dpi": f"{random.choice([320, 480, 640])}dpi",
+                    "resolution": random.choice(["720x1280", "1080x1920", "1440x2560"]),
+                    "manufacturer": random.choice(["Samsung", "OnePlus", "Google", "Xiaomi"]),
+                    "device": random.choice(["s21", "6T", "pixel5", "mi11"]),
+                    "model": random.choice(["SM-G991B", "ONEPLUS A6013", "Pixel 5", "M2011K2C"]),
+                })
+
             # Login with verification code if available
             self.cl.login(self.username, self.password, verification_code=verification_code)
             self.cl.dump_settings(self.session_file)
