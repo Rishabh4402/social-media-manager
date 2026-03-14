@@ -52,17 +52,11 @@ class InstaManager:
             if os.path.exists(self.session_file):
                 self.cl.load_settings(self.session_file)
                 print("Loaded existing session.")
-            else:
                 # If no session, randomize device to avoid fingerprint bans
-                print("Setting fresh device fingerprint...")
-                
-                # Randomized but consistent device info
-                device_id = self.cl.generate_device_id()
-                uuid = self.cl.generate_uuid()
-                ad_id = self.cl.generate_ad_id()
+                print("Setting fresh device fingerprint (Samsung Galaxy S21)...")
                 
                 # Detailed device parameters
-                # We use a very common current device to avoid suspicion
+                # instagrapi handles UUID/DeviceID generation internally when set_device is called
                 android_version = random.randint(28, 32) # Android 9-12
                 self.cl.set_device({
                     "app_version": "364.0.0.35.86",
