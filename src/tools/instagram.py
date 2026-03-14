@@ -64,8 +64,12 @@ class InstaManager:
                     print("Login via Session ID successful!")
                     return True
                 except Exception as ses_e:
-                    print(f"Session ID login failed: {ses_e}")
-                    # Fall back to standard login
+                    print(f"Session ID login noticed (will fall back if needed): {ses_e}")
+                    # Some versions of instagrapi fail on new GQL fields like 'pinned_channels_info'
+                    # but the session is actually loaded. We check if pk exists.
+                    if self.cl.user_id:
+                        print("Session appears valid despite parsing error. Continuing...")
+                        return True
             
             # If no session, randomize device to avoid fingerprint bans
             if not os.path.exists(self.session_file):
@@ -141,14 +145,30 @@ class InstaManager:
                 msg = str(e)
                 # If we get "Unknown" but status is "ok", it likely uploaded successfully
                 if "Unknown" in msg and "'status': 'ok'" in msg:
-                    print("Detected 'Unknown' but successful response. Fetching latest post to verify...")
-                    time.sleep(5)
-                    # Use internal user_id from session to avoid rate-limited public GQL requests
-                    user_id = self.cl.user_id
-                    medias = self.cl.user_medias(user_id, amount=1)
-                    if medias:
-                        print(f"Latest post recovered: {medias[0].id}")
-                        return medias[0]
+                    print("Detected 'Unknown' but successful response. Recovering media ID...")
+                    # Try to recover latest post with backoff to avoid "Please wait" blocks
+                    for attempt in range(3):
+                        wait_time = (attempt + 1) * 15
+                        print(f"Waiting {wait_time}s for sync (Attempt {attempt+1}/3)...")
+                        time.sleep(wait_time)
+                        try:
+                            user_id = self.cl.user_id
+                            medias = self.cl.user_medias(user_id, amount=1)
+                            if medias:
+                                print(f"Latest post recovered: {medias[0].id}")
+                                return medias[0]
+                        except Exception as rec_e:
+                            print(f"Recovery attempt {attempt+1} failed: {rec_e}")
+                            if "Please wait" not in str(rec_e):
+                                break
+                    
+                    # If GQL recovery fails, try a manual ID search in the error message
+                    import re
+                    match = re.search(r"'id': '(\d+)'", msg)
+                    if match:
+                        media_id = match.group(1)
+                        print(f"Recovered media ID from response text: {media_id}")
+                        return self.cl.media_info(media_id)
                 
                 print(f"Reel upload failed: {e}")
                 return None
