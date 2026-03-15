@@ -37,28 +37,30 @@ class InstagramAgent:
 
             print("Agent Action -> Logging into Instagram API...")
             if self.insta_tool.login():
+                # PRE-UPLOAD: Verify local file has audio
+                if not self.insta_tool.verify_audio_local(video_path):
+                    print("Agent Warning -> Local file has NO audio. Skipping upload.")
+                    if attempt < max_attempts - 1:
+                        print("Retrying with a different video...")
+                        continue
+                    else:
+                        print("Agent Error: Could not generate video with audio.")
+                        sys.exit(1)
+                
                 print("Agent Action -> Initiating Post Sequence...")
                 media = self.insta_tool.post_reel(video_path, caption)
                 
                 if media:
-                    print(f"Agent Action -> Post created (ID: {media.id}). Starting verification...")
+                    print(f"Agent Action -> Post created (ID: {media.id}). Running post-upload check...")
                     
-                    # Verify that the audio is actually working on Instagram
-                    if self.insta_tool.verify_audio(media.id):
-                        print("Agent Action -> Successfully published post with audio!")
-                        if os.path.exists(video_path):
-                            os.remove(video_path)
-                        # Success! Exit loop
-                        break
-                    else:
-                        print("Agent Warning -> Audio check failed! Rolling back post...")
-                        self.insta_tool.delete_media(media.id)
-                        if attempt < max_attempts - 1:
-                            print("Retrying with a different video...")
-                            continue
-                        else:
-                            print("Agent Error: Multiple attempts failed to produce a post with audio.")
-                            sys.exit(1)
+                    # POST-UPLOAD: Quick check if the post is live
+                    self.insta_tool.verify_audio(media.id)
+                    
+                    print("Agent Action -> Successfully published post!")
+                    if os.path.exists(video_path):
+                        os.remove(video_path)
+                    # Success! Exit loop
+                    break
                 else:
                     print("Agent Error: Failed to publish post.")
                     sys.exit(1)

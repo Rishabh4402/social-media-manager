@@ -3,3 +3,6 @@
 *.mp4
 .DS_Store
 ig_session.json
+*.idea
+device_settings.json
+*.jpg

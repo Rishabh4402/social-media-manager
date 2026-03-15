@@ -8,6 +8,7 @@ This document provides a deep dive into the **Social Media Manager Agent**'s int
 - [Project Layout](#-project-layout)
 - [GitHub Secrets](#-github-secrets)
 - [GitHub Automation](#-github-automation)
+- [Anti-Detection & Anti-Bot Protection](#-anti-detection--anti-bot-protection)
 - [Safety & Content Policy](#-safety--content-policy)
 
 ---
@@ -50,16 +51,16 @@ Strict separation between **System Instructions** (`system_instructions/`) and d
 ## 🔑 GitHub Secrets
 Add these in **Settings > Secrets and variables > Actions**:
 
-| Secret | Description |
-|--------|-------------|
-| `IG_USERNAME` | Instagram email/username |
-| `IG_PASSWORD` | Instagram password |
-| `IG_2FA_SEED` | (Optional) 2FA Secret Key for automated login |
-| `IG_SESSIONID` | (Optional) Browser Session ID to bypass IP blacklists |
-| `IG_PROXY` | (Optional) Proxy URL (e.g., `http://user:pass@host:port`) |
-| `GEMINI_API_KEY` | Google AI Studio API key |
-| `PIXABAY_API_KEY` | Pixabay API key for trending videos |
-| `CONTENT_NICHE` | Content niche (e.g., "Fascinating Science Facts") |
+| Secret | Description | Required |
+|--------|-------------|----------|
+| `IG_USERNAME` | Instagram email/username | Yes |
+| `IG_PASSWORD` | Instagram password | Yes |
+| `IG_PROXY` | Residential proxy URL (required for GitHub Actions!) | **Yes** |
+| `GEMINI_API_KEY` | Google AI Studio API key | Yes |
+| `PIXABAY_API_KEY` | Pixabay API key for trending videos | Yes |
+| `CONTENT_NICHE` | Content niche (e.g., "Fascinating Science Facts") | Yes |
+| `IG_2FA_SEED` | 2FA Secret Key for automated login | No |
+| `IG_SESSIONID` | Browser Session ID to bypass IP blacklists | No |
 
 ---
 
@@ -67,6 +68,54 @@ Add these in **Settings > Secrets and variables > Actions**:
 - Runs **daily at 09:00 UTC** via GitHub Actions.
 - Auto-commits `posted_history.json` after each run to track posted videos.
 - Can be triggered manually from the **Actions** tab.
+
+---
+
+## 🛡️ Anti-Detection & Anti-Bot Protection
+
+This section documents the built-in protections to prevent Instagram from flagging your automation as bot activity.
+
+### ⚠️ Critical: Proxy Requirement
+
+**Instagram actively blocks data center IPs.** If you run this from GitHub Actions without a proxy, your account WILL be flagged.
+
+**Required:** Add a **residential proxy** to GitHub Secrets:
+| Secret | Example |
+|--------|---------|
+| `IG_PROXY` | `http://user:pass@123.45.67.89:8000` |
+
+Recommended providers:
+- **Bright Data** (brightdata.com) - Most reliable
+- **Smartproxy** (smartproxy.com) - Good balance
+- **Oxylabs** (oxylabs.io) - Enterprise grade
+
+### 🔄 Anti-Detection Features
+
+| Feature | Description |
+|---------|-------------|
+| **Device Fingerprint Rotation** | Randomly selects from Samsung, Google Pixel, OnePlus, Xiaomi, OPPO, vivo, Sony devices |
+| **Waterfall Delays** | Randomized 3-8 second delays between actions to mimic human behavior |
+| **Micro-Jitter** | 100-500ms random delays between API requests |
+| **Header Injection** | Adds realistic app headers (`X-IG-App-Locale`, `X-Pigeon-Session-Id`, etc.) |
+| **Session Persistence** | Reuses valid sessions to avoid repeated logins |
+
+### ⚙️ Anti-Bot Configuration
+
+Environment variables to fine-tune behavior:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENABLE_ANTIBOT` | `true` | Enable/disable all anti-detection features |
+| `REQUEST_DELAY_MIN` | `3` | Minimum delay between requests (seconds) |
+| `REQUEST_DELAY_MAX` | `8` | Maximum delay between requests (seconds) |
+| `WATERFALL_ENABLED` | `true` | Enable "thinking time" delays |
+
+### 🚫 Spam Detection Handling
+
+The code detects Instagram spam/feedback errors and stops execution to prevent further restrictions:
+- Logs clear error messages
+- Stops further upload attempts
+- Provides recovery recommendations
 
 ---
 
@@ -93,11 +142,19 @@ Add these in **Settings > Secrets and variables > Actions**:
 - **`overlay_text()`**: Uses `PIL (Pillow)` to draw formatted text on top of generated images for photo posts.
 
 ### 4. Instagram API Tool (`src/tools/instagram.py`)
-- **`login()`**: 
+- **`login()`**:
     - Implements a session-caching mechanism (`ig_session.json`).
     - **Automated 2FA**: If `IG_2FA_SEED` is provided, it uses `pyotp` to generate a 6-digit verification code on-the-fly, making the agent truly autonomous.
     - **Blacklist Prevention**: Supports `IG_PROXY` to route traffic through a clean residential IP, bypassing server-side IP bans.
+    - **Device Fingerprint**: Loads from `device_settings.json` or generates a new randomized fingerprint each session.
 - **`post_reel()`**: Uses `clip_upload` with explicit `extra_data={"audio_muted": False}` to bypass Instagram's automated audio-stripping algorithms.
+    - Includes human-like delays before/after upload
+    - Detects and handles spam/feedback errors gracefully
+- **Anti-Detection Methods**:
+    - `_waterfall_delay()`: Adds randomized delays between actions
+    - `_jitter_request()`: Micro-delays between API calls
+    - `_add_extra_headers()`: Injects realistic app headers
+    - `_generate_device_fingerprint()`: Creates varied device signatures
 
 ### 5. Memory Module (`src/memory/history.py`)
 - **`save(video_id, audio_id)`**: Appends used IDs to `posted_history.json`.
