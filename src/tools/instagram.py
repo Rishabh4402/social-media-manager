@@ -342,9 +342,13 @@ class InstaManager:
                                 code = items[0].get("code", "")
                                 full_id = f"{new_id}_{user_pk}"
                                 print(f"Latest post recovered via private API: {full_id} (code: {code})")
-                                # Return a minimal object with .id attribute
-                                media_obj = self.cl.media_info(full_id)
-                                return media_obj
+                                # Return a lightweight object — do NOT call media_info (triggers login_required)
+                                class RecoveredMedia:
+                                    def __init__(self, mid, c):
+                                        self.id = mid
+                                        self.pk = new_id
+                                        self.code = c
+                                return RecoveredMedia(full_id, code)
                         except Exception as rec_e:
                             print(f"Recovery attempt {attempt+1} failed: {rec_e}")
                             if "Please wait" not in str(rec_e) and "login_required" not in str(rec_e):
@@ -380,55 +384,23 @@ class InstaManager:
 
     def verify_audio_local(self, video_path):
         """Verify the LOCAL video file has audio BEFORE uploading.
-        This is more reliable than trying to download from Instagram after upload,
-        which often fails with login_required on session-only auth."""
+        Uses moviepy which is already a dependency."""
         print(f"Verifying audio in local file: {video_path}...")
         try:
-            # Use ffprobe (comes with imageio-ffmpeg, already installed)
-            from imageio_ffmpeg import get_ffmpeg_exe
-            ffmpeg_path = get_ffmpeg_exe()
-            ffprobe_path = ffmpeg_path.replace("ffmpeg", "ffprobe")
-            
-            # If ffprobe doesn't exist at that path, try system ffprobe
-            if not os.path.exists(ffprobe_path):
-                ffprobe_path = "ffprobe"
-            
-            result = subprocess.run(
-                [ffprobe_path, "-v", "quiet", "-print_format", "json", 
-                 "-show_streams", video_path],
-                capture_output=True, text=True, timeout=15
-            )
-            
-            if result.returncode != 0:
-                # Fallback: use moviepy
-                from moviepy.editor import VideoFileClip
-                clip = VideoFileClip(video_path)
-                has_audio = clip.audio is not None
-                duration = clip.duration
-                clip.close()
-                if has_audio:
-                    print(f"✅ Audio verified via moviepy! Duration: {duration}s")
-                    return True
-                else:
-                    print("❌ No audio track in local file!")
-                    return False
-            
-            import json as json_mod
-            probe_data = json_mod.loads(result.stdout)
-            streams = probe_data.get("streams", [])
-            audio_streams = [s for s in streams if s.get("codec_type") == "audio"]
-            
-            if audio_streams:
-                codec = audio_streams[0].get("codec_name", "unknown")
-                print(f"✅ Audio verified! Codec: {codec}, Streams: {len(audio_streams)}")
+            from moviepy.editor import VideoFileClip
+            clip = VideoFileClip(video_path)
+            has_audio = clip.audio is not None
+            duration = clip.duration
+            clip.close()
+            if has_audio:
+                print(f"✅ Audio verified! Duration: {duration:.1f}s")
                 return True
             else:
-                print("❌ No audio stream found in local file!")
+                print("❌ No audio track in local file!")
                 return False
         except Exception as e:
             print(f"Local audio check error: {e}")
-            # Fallback: assume OK to avoid blocking the upload
-            print("Assuming audio is OK (verification tool unavailable).")
+            # Assume OK to avoid blocking the upload
             return True
 
     def verify_audio(self, media_id):
